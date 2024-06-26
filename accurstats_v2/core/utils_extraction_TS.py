@@ -1,13 +1,17 @@
+import sys
+sys.path.append('../')
+sys.path.append('../../')
+sys.path.append('../../../')
+
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
-import Test_stats
-import utils_Traitement
-from Moving_average import Moving_average
+from core import Test_stats
+from core import utils_Traitement
+from core.Moving_average_Container import Moving_average
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-
 
 
 """
@@ -41,56 +45,45 @@ def apply(MA, serie: pd.DataFrame) -> pd.DataFrame:
 
 # Tendance polynomiale
 def extract_trend_OLS(serie: DataFrame, degre: int) -> DataFrame:
-    if serie.isna().any().any():
-        raise TypeError("Veuillez interpoler la série svp")
+    #if serie.isna().any().any():
+     #   raise TypeError("Veuillez interpoler la série svp")
     # Let's goooooo
     date_min = serie.iloc[:, 0].min()
     t = (serie.iloc[:, 0] - date_min).dt.days
     initial_coeff = np.zeros(degre + 1)
     result = minimize(Test_stats.mse_loss_trend, initial_coeff, args=(serie, t))
-    #print(result)
-    # Restitution de la tendance
+
     temps = serie.iloc[:, 0]
     values = pd.Series(np.polyval(result.x, t))
-    final = pd.DataFrame({'Date': temps, 'Cible': values})
-    return final
+    return (values, result.x)
 
 
 
 
 
 # La saisonnailté à partir de la librairie statsmodels
-def saisonnalite(serie: DataFrame) -> DataFrame :        # Elle renvoie la saisonnalité de la série
+def saisonnalite(serie: DataFrame, period) -> DataFrame :        # Elle renvoie la saisonnalité de la série
     temps = serie.iloc[:,0]
-    decomposition = sm.tsa.seasonal_decompose(serie.iloc[:, 1],
-                                              model='additive',
-                                              period=30)  # Ajustez 'period' selon la fréquence de votre saisonnalité
+    decomposition = sm.tsa.seasonal_decompose(serie.iloc[:, 1],model='additive', period= period)  # Ajustez 'period' selon la fréquence de votre saisonnalité
     saiso = decomposition.seasonal
-    final = pd.DataFrame({'Date': temps, 'Cible': saiso})
-    return final
+    return saiso
 
 
 # La tendance à partir de la librairie statsmodels
-def tendance(serie: DataFrame) -> DataFrame:
+def tendance(serie: DataFrame,period) -> DataFrame:
     temps = serie.iloc[:, 0]
-    decomposition = sm.tsa.seasonal_decompose(serie.iloc[:, 1],
-                                              model='additive',
-                                              period=30)  # Ajustez 'period' selon la fréquence de votre saisonnalité
+    decomposition = sm.tsa.seasonal_decompose(serie.iloc[:, 1], model='additive',period=period)  # Ajustez 'period' selon la fréquence de votre saisonnalité
     saiso = decomposition.trend
-    final = pd.DataFrame({'Date': temps, 'Cible': saiso})
-    return final
+    return saiso
 
 
 
 # Les résidus à partir de la librairie statsmodels
-def residus(serie: DataFrame) -> DataFrame:
+def residus(serie: DataFrame, period) -> DataFrame:
     temps = serie.iloc[:, 0]
-    decomposition = sm.tsa.seasonal_decompose(serie.iloc[:, 1],
-                                              model='additive',
-                                              period=30)  # Ajustez 'period' selon la fréquence de votre saisonnalité
+    decomposition = sm.tsa.seasonal_decompose(serie.iloc[:, 1],model='additive',period=period)  # Ajustez 'period' selon la fréquence de votre saisonnalité
     saiso = decomposition.resid
-    final = pd.DataFrame({'Date': temps, 'Cible': saiso})
-    return final
+    return saiso
 
 
 
@@ -138,33 +131,3 @@ def procedure_X11(serie: DataFrame) -> DataFrame:           # Il faut avant modi
         {'Date': serie.iloc[:, 0], 'Cible': serie.iloc[:, 1] - final_trend.iloc[:, 1] - final_seasonal.iloc[:, 1]})
 
     return final_trend
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Exemple de test
-input = "../Series-Factoring-test.xlsx"
-
-data = pd.read_excel(input )
-
-serie = utils_Traitement.extract_column(data , 4)
-#serie = utils_Traitement.next_interpol(serie , 1)
-
-transfo = procedure_X11(serie)
-
-plt.plot(serie.iloc[:,0] , serie.iloc[:,1] , color="blue" , label="La série originale")
-plt.plot(transfo.iloc[:,0] , transfo.iloc[:,1] , color= "orange" , label="La tendance m2 au milieu de X11")
-plt.legend()
-plt.show()
-
-
-

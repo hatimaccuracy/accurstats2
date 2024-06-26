@@ -32,6 +32,7 @@
   "keyToString": {
     "Python.1_importation.executor": "Run",
     "Python.2_Analyse.executor": "Run",
+    "Python.4_Screening.executor": "Debug",
     "Python.fetch.executor": "Run",
     "Python.gpt.executor": "Run",
     "Python.input_clean.executor": "Run",
@@ -43,12 +44,13 @@
     "Python.utils_import_ui.executor": "Run",
     "Python.utils_yfinance.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main__",
-    "last_opened_file_path": "C:/Users/BLILET Hatim/Documents/GitHub/accurstats2/accurstats_v2"
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/BLILET Hatim/Desktop/GitHub/accurstats2/accurstats_v2"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\BLILET Hatim\Desktop\GitHub\accurstats2\accurstats_v2\core" />
       <recent name="C:\Users\BLILET Hatim\Documents\GitHub\accurstats2\accurstats_v2\core" />
       <recent name="C:\Users\BLILET Hatim\Documents\GitHub\accurstats2\accurstats_v2\ui" />
       <recent name="C:\Users\BLILET Hatim\Documents\GitHub\accurstats2\accurstats_v2\ui\pages" />

@@ -108,7 +108,7 @@ if st.session_state.queue_names:
         for j in to_columns:
             index = int(j.split('-')[0].strip())
             column = j.split('-')[1].strip()
-            union[column] = st.session_state.queue[index][column]
+            union[j] = st.session_state.queue[index][column]
         for j in range(len(union.columns)):
             r_col = union.columns[j]
             t = str(union[r_col].dtype)
@@ -132,7 +132,7 @@ if st.session_state.queue_names:
 
             fig.update_layout(
                 title='Visualisation collective',
-                xaxis_title='Index',
+                xaxis_title='Date',
                 yaxis_title='Valeur'
             )
             st.plotly_chart(fig)

@@ -20,8 +20,3 @@ def interpret_model(target ,mod):
     message_to_GPT+= yapping_interpret
     return to_GPT(message_to_GPT)
 
-"""
-Exemple:
-print(interpret_model("BDF_Affacturage_SNF_Encours - Growth",["1", 0, "INSEE_PIBFR_DIFF 4P", float(10e-6), "SPREAD10Y3M-t1", 0.86]))
-"""
-

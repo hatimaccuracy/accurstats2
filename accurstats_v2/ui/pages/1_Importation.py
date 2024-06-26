@@ -1,6 +1,9 @@
 import streamlit as st
 import sys
 import time
+
+from matplotlib import pyplot as plt
+
 st.set_page_config(
     page_title= "AccurStats - Importation",
     page_icon = 'A'
@@ -152,10 +155,13 @@ if st.session_state.queue:
                     if 'date' in col.lower() or 'time' in col.lower() or 'temp' in col.lower():
                         date_col = col
                         break
-
-                if date_col is None:
+                if date_col is None and not isinstance(df.index,pd.DatetimeIndex):
                     st.error("Il manque les données temporelles (dates) dans les données fournies.")
+
+                elif isinstance(df.index,pd.DatetimeIndex):
+                    st.line_chart(df[choix_rep])
                 else:
                     df = df.set_index(date_col)
                     st.line_chart(df[choix_rep])
                     st.session_state.to_graph.append(pd.DataFrame(df[choix_rep],index = df.index))
+

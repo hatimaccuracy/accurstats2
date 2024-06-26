@@ -1,13 +1,15 @@
+import pandas as pd
 import streamlit as st
 import sys
 import numpy as np
 from core import utils_analyse
+import time
 from core import utils_extraction_TS
 sys.path.append('../')
 sys.path.append('../../')
 sys.path.append('../../../')
 st.set_page_config(
-    page_title= "AccurStats - Analyse",
+    page_title= "AccurStats - Analyse -",
     page_icon = 'A'
 )
 st.title('Analyse des données importés')
@@ -31,14 +33,32 @@ else:
 if st.session_state.queue_names:
     for i in range(len(st.session_state.queue_names)):
         st.write(f"### Fichier {i+1}: {st.session_state.queue_names[i]}")
+        with st.expander('Changement de fréquence'):
+            choix_res = st.selectbox('Choisir nouvelle fréquence:', ['D - Jour', 'W - Semaine', 'M - Mois', 'Q - Trimestre', 'Y - Année' , 'H - Heure', 'T - Minute', 'S - Second'], key=f"freq_change{i}")
+            agg = st.selectbox("Choisir fonction d'aggregation:", ['mean - Moyenne', 'max - Valeur maximale', 'sum - Somme'], key=f"freq_agg{i}")
+            st.info('Après changement de fréquence, vous pouvez utiliser les interpolations (onglet transformations).')
+            if st.button('Appliquer', key=f"changement_freq{i}"):
+                if "mean" in agge:
+                    agg_ = 'mean'
+                else:
+                    agg_ = agg[:3]
+                st.session_state.queue.insert(i+1,st.session_state.queue[i].asfreq(choix_res[0].lower()))
+                st.session_state.queue[i+1].index.freq = choix_res[0].lower()
+                for col in st.session_state.queue[i+1].columns:
+                    if 'int' in col or 'float' in col:
+                        st.session_state.queue[i+1][col] = st.session_state.queue[i+1][col].aggregate(agg_)
+                    else:
+                        continue
+
+                st.session_state.queue_names.insert(i+1,st.session_state.queue_names[i]+ f" (T)/ {choix_res} / {agg}")
+                st.success(f'Changement de fréquence en {choix_res}/{agg_} fait avec succes')
+                st.rerun()
         with st.expander('Transformations'):
             st.write("##### Interpolation")
             columns = [str(j) + ' - '+ st.session_state.queue[i].columns[j] + ' - '+ str(st.session_state.queue[i][st.session_state.queue[i].columns[j]].dtype) for j in range(1,len(st.session_state.queue[i].columns))]
             columns.insert(0,'TOUT')
             selected_column_int = st.selectbox("Sélectionner une colonne :", columns, key = f'col{i}')
-            # Slider for parameter selection (1 to 12)
             meth = st.selectbox("Sélectionner une méthode d'interpolation:", utils_analyse.interpolations, key =f'meth{i}')
-            # Button to apply transformation
             if st.button("Appliquer la transformation", key = f'but{i}'):
                 if selected_column_int ==  'TOUT':
                     for j in range(len(st.session_state.queue[i].columns)):
@@ -81,10 +101,11 @@ if st.session_state.queue_names:
 
             # Button to apply transformation
             if st.button("Appliquer la transformation", key = f'lag_app{i}'):
-                transformed_data = st.session_state.queue[i]
-                st.session_state.queue[i] = transformed_data
-
-                st.success(f"Transformation appliquée avec succès pour {selected_column_lag} avec paramètre {parameter_value}")
+                transformed_data = utils_extraction_TS.lag(st.session_state.queue[i][selected_column_lag],parameter_value)
+                st.session_state.queue[i][f"(T) / {selected_column_lag} / LAG_{parameter_value}"] = transformed_data
+                st.success(f"Lag appliquée avec succès pour {selected_column_lag} avec paramètre {parameter_value}")
+                time.sleep(1)
+                st.rerun()
 
             st.write("---")  # Separator between transformation sections
             st.write("##### Appliquation d'une croissance")
@@ -109,6 +130,81 @@ if st.session_state.queue_names:
                 st.success(
                     f"Croissance {selected_growth.lower()} appliquée avec succès pour {selected_column_gr}")
         with st.expander('Analyse de séries temporelles'):
-            st.write('fh')
+            st.write("##### Approximation polynômiale de tendance")
+            columns = st.session_state.queue[i].columns[1:]
+            selected_column_prox = st.selectbox("Sélectionner une colonne :", columns, key=f'approx_pol{i}')
+
+            # Slider for parameter selection (1 to 12)
+            parameter_value_pol = st.slider("Choisir degré de polynôme (0 à 2) :", 0, 2, key=f'param_pol{i}')
+            # Button to apply transformation
+            if st.button("Chercher polynome", key=f'poly_app{i}'):
+                to_transform = pd.DataFrame(st.session_state.queue[i][selected_column_prox])
+                to_transform =to_transform.reset_index()
+                transformed_data = utils_extraction_TS.extract_trend_OLS(to_transform,parameter_value_pol)
+                transformed_data[0].index = st.session_state.queue[i].index
+                st.session_state.queue[i][f"(AST) / {selected_column_prox} / POLYNOME_{parameter_value_pol}_TENDANCE"] = transformed_data[0]
+                st.write(f'Polynôme de degré {parameter_value_pol} qui approche au mieux la tendance:')
+                if parameter_value_pol == 0:
+                    poly_expr=f"$${transformed_data[1][0]}$$"
+                elif parameter_value_pol == 1:
+                    poly_expr = f"$${transformed_data[1][0]} + ({transformed_data[1][1]})\cdot (t-t_0)$$"
+                else:
+                    poly_expr = f"$${transformed_data[1][0]} + ({transformed_data[1][1]})\cdot (t-t_0) + ({transformed_data[1][2]})\cdot (t-t_0)^2 $$"
+                st.markdown(poly_expr)
+                st.success("Polynôme d'interpolation est ajouté au colonnes du fichier original")
+
+            st.write("---")
+            st.write("##### Extraction de tendance")
+            columns = st.session_state.queue[i].columns[1:]
+            selected_column_trend = st.selectbox("Sélectionner une colonne :", columns, key=f'trend{i}')
+            parameter_value_trend_freq = st.slider("Choisir période (fréquence sur base de temps de fichier):", 1, 24, key=f'trend_freq{i}')
+
+          # Button to apply transformation
+            if st.button("Extraire", key=f'tend{i}'):
+                to_transform = st.session_state.queue[i][selected_column_trend]
+                to_transform = to_transform.reset_index()
+                to_transform= to_transform.dropna()
+                transformed_data = utils_extraction_TS.tendance(to_transform, parameter_value_trend_freq)
+                transformed_data.index = to_transform[to_transform.columns[0]]
+                st.session_state.queue[i][f"(AST) / {selected_column_trend} / ACTUEL_TENDANCE{parameter_value_trend_freq}"] = transformed_data
+                st.success("Tendance bien ajoutée")
+
+
+            st.write("---")
+            st.write("##### Extraction de saisonalité")
+            columns = st.session_state.queue[i].columns[1:]
+            selected_column_seas = st.selectbox("Sélectionner une colonne :", columns, key=f'season{i}')
+            parameter_value_seas_freq = st.slider("Choisir période (fréquence sur base de temps de fichier):", 1, 24,
+                                                  key=f'season_freq{i}')
+
+            # Button to apply transformationa
+            if st.button("Extraire", key=f'seas{i}'):
+                to_transform = st.session_state.queue[i][selected_column_seas]
+                to_transform = to_transform.reset_index()
+                to_transform = to_transform.dropna()
+                transformed_data = utils_extraction_TS.saisonnalite(to_transform, parameter_value_seas_freq)
+                transformed_data.index = to_transform[to_transform.columns[0]]
+                st.session_state.queue[i][
+                    f"(AST) / {selected_column_seas} / ACTUEL_SEASONALITE{parameter_value_seas_freq}"] = transformed_data
+                st.success("Seasonalité bien ajoutée")
+            st.write("---")
+
+            st.write("##### Extraction de résidus")
+            columns = st.session_state.queue[i].columns[1:]
+            selected_column_res= st.selectbox("Sélectionner une colonne :", columns, key=f'res_c{i}')
+            parameter_value_res_freq = st.slider("Choisir période (fréquence sur base de temps de fichier):", 1, 24,
+                                                  key=f'res_freq{i}')
+
+            # Button to apply transformation
+            if st.button("Extraire", key=f'res{i}'):
+                to_transform = st.session_state.queue[i][selected_column_res]
+                to_transform = to_transform.reset_index()
+                to_transform = to_transform.dropna()
+                transformed_data = utils_extraction_TS.residus(to_transform, parameter_value_res_freq)
+                transformed_data.index = to_transform[to_transform.columns[0]]
+                st.session_state.queue[i][
+                    f"(AST) / {selected_column_res} / ACTUEL_RESIDUS{parameter_value_res_freq}"] = transformed_data
+                st.success("Résidu bien ajoutée")
+
 else:
     st.error("Aucun fichier importé.")

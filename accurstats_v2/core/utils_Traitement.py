@@ -118,7 +118,6 @@ def linear_interpol(data: DataFrame, i: int) -> DataFrame:
         if not pd.isna(df.iloc[haut, i]) and haut - bas + 1 >= 1:
             start = df.iloc[bas, i]
             end = df.iloc[haut, i]
-            print(haut , bas)
             interp = np.linspace(start, end, haut - bas + 1)
             df.iloc[bas:haut + 1, i] = interp
             bas = haut

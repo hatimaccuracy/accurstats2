@@ -22,7 +22,6 @@ input = "Series-Factoring-test.xlsx"
 #input = "test_interpolation.xlsx"
 
 
-
 # Fonction qui transforme un fichier excel en un pandas
 def from_excel(input: str) -> DataFrame:
     file_path = os.path.join(os.path.dirname(__file__), input)

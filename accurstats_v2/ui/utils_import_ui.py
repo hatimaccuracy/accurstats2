@@ -17,7 +17,10 @@ def read_file(uploaded_file):
         deci = st.selectbox('Choisir delimitation décimale:', ['', ';', ',', r'\t'])
         while (deci == ''):
             time.sleep(1)
-        return pd.read_csv(uploaded_file, delimiter=deli, decimal= deci)
+        encod = st.selectbox('Choisir encoding:', ['', 'utf-8', 'ascii', r'latin-1'])
+        while (encod == ''):
+            time.sleep(1)
+        return pd.read_csv(uploaded_file, delimiter=deli, decimal= deci, encoding=encod)
     elif file_extension in ['xls', 'xlsx']:
         xls = pd.read_excel(uploaded_file, sheet_name=None)
         sheet_names = list(xls.keys())

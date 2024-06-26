@@ -4,7 +4,6 @@ import numpy as np
 from statsmodels.tsa.stattools import adfuller
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-import utils_Traitement
 import seaborn as sns
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -40,11 +39,3 @@ def correlation(data:DataFrame) :
     return map
 
 
-
-
-# Exemple de test
-input = "../Series-Factoring-test.xlsx"
-
-data = pd.read_excel(input )
-
-heat = correlation(data)
