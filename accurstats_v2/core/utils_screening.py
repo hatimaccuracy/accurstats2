@@ -82,7 +82,7 @@ def toString_Model_Reg(cible: pd.DataFrame,
 
 
 # Fonction de screening par brute force
-def Model_screening(explicatives: DataFrame , cible: DataFrame ,rho: float , Model,progress_bar) -> DataFrame:           # hatim stv ajoutes la progress bar
+def Model_screening(explicatives: DataFrame , cible: DataFrame ,rho: float , Model, progress_bar) -> DataFrame:           # hatim stv ajoutes la progress bar
     # On élimine la colonne des dates                                                                       ###################################
     dates = explicatives.iloc[:,0]
     explicatives.pop('Date')
@@ -98,7 +98,6 @@ def Model_screening(explicatives: DataFrame , cible: DataFrame ,rho: float , Mod
     count =0
     co= len(combinaisons)
     for col1, col2 in combinaisons:
-        print(col1,col2)
         dico_screen['Predictor 1'].append(col1)
         dico_screen['Predictor 2'].append(col2)
         count =count +1
@@ -140,25 +139,64 @@ def Model_ARX(cible: pd.DataFrame, expli1: pd.DataFrame, expli2: pd.DataFrame, o
     # Gestion des dates et dataframe
     dates = cible.iloc[:, 0]
     df = pd.DataFrame({
-        'Y': cible.iloc[:, 1],
-        'X1': expli1.iloc[:, 1],
-        'X2': expli2.iloc[:, 1]
+        cible.columns[1]: cible.iloc[:, 1],
+        expli1.columns[1]: expli1.iloc[:, 1],
+        expli2.columns[1]: expli2.iloc[:, 1]
     })
 
 
-    extract = ['X1', 'X2']
+    extract = [expli1.columns[1], expli2.columns[1]]
     for i in range(1, ordre + 1):
-        df[f'Y_lag{i}'] = df['Y'].shift(i)
-        extract.append(f'Y_lag{i}')
+        df[f'{cible.columns[1]}_lag{i}'] = df[cible.columns[1]].shift(i)
+        extract.append(f'{cible.columns[1]}_lag{i}')
 
     df = df.iloc[ordre:]
-    endog = df['Y']
+    endog = df[cible.columns[1]]
     exog = sm.add_constant(df[extract])
     # Ajustement du modèle AR-X
     model = sm.OLS(endog, exog)
     results = model.fit()
 
-    return results.params
+    return results, dates.iloc[ordre:], endog
+
+
+def Model_ARX_rho(cible: pd.DataFrame, expli1: pd.DataFrame, expli2: pd.DataFrame, ordre: int, rho: float):
+
+
+    # Préparation de la donnée
+    donnees_traites = utils_Traitement.intersection_date(cible, expli1, expli2)
+    cible, expli1, expli2 = donnees_traites[0], donnees_traites[1], donnees_traites[2]
+
+    # Gestion des dates et dataframe
+    dates = cible.iloc[:, 0]
+    df = pd.DataFrame({
+        cible.columns[1]: cible.iloc[:, 1],
+        expli1.columns[1]: expli1.iloc[:, 1],
+        expli2.columns[1]: expli2.iloc[:, 1]
+    })
+
+    extract = [expli1.columns[1], expli2.columns[1]]
+    for i in range(1, ordre + 1):
+        df[f'{cible.columns[1]}_lag{i}'] = df[cible.columns[1]].shift(i)
+        extract.append(f'{cible.columns[1]}_lag{i}')
+
+    df = df.iloc[ordre:]
+    endog = df[cible.columns[1]]
+    exog = sm.add_constant(df[extract])
+
+    # Diviser les données en ensembles d'entraînement et de test
+    train_size = int(len(df) * (1 - rho))
+    endog_train, endog_test = endog[:train_size], endog[train_size:]
+    exog_train, exog_test = exog[:train_size], exog[train_size:]
+    dates_train, dates_test = dates.iloc[ordre:train_size + ordre], dates.iloc[train_size + ordre:]
+
+    # Ajustement du modèle AR-X sur les données d'entraînement
+    model = sm.OLS(endog_train, exog_train)
+    results = model.fit()
+
+    return results, dates_train, endog_train, exog_test, dates_test, endog_test, exog_train
+
+
 
 
 
@@ -194,7 +232,7 @@ ex2 = utils_Traitement.extract_column(frame , 13)
 
 resultat = Model_ARX(cible , ex1 , ex2, 2)
 
-print(resultat)
+print(resultat.summary())
 """
 
 

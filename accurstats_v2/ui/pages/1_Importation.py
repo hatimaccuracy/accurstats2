@@ -1,9 +1,13 @@
+##################################################################
+############## TO DO
+################## FOR MANUALLY IMPORTED FILES, CHECK DATES PROPERLY
+#########################################################
+
+
 import streamlit as st
 import sys
 import time
-
-from matplotlib import pyplot as plt
-
+import plotly.express as px
 st.set_page_config(
     page_title= "AccurStats - Importation",
     page_icon = 'A'
@@ -16,7 +20,7 @@ from retrieval import utils_bce
 import pandas as pd
 from config import retrieval_methods
 from retrieval import  utils_yfinance
-
+pd.set_option('display.max_columns',None)
 ### CACHE
 # Initialize session state variables if they don't exist
 if 'queue' not in st.session_state:
@@ -31,7 +35,7 @@ if 'to_graph' not in st.session_state:
 st.title("Importation de données")
 
 # Dropdown for selecting data retrieval method
-choix = st.selectbox("Veuillez choisir un mode d'importation de données", retrieval_methods)
+choix = st.selectbox("Veuillez choisir un mode d'importation de données:", retrieval_methods)
 
 # Handling different retrieval methods
 if choix == retrieval_methods[-1]:
@@ -45,8 +49,12 @@ if choix == retrieval_methods[-1]:
             if 'date' in col.lower() or 'time' in col.lower():
                 date_col = col
                 break
-        st.session_state.queue[-1].index = pd.to_datetime(st.session_state.queue[-1][date_col])
-        st.session_state.queue_names.append(file_.name)
+        try:
+            st.session_state.queue[-1].index = pd.to_datetime(st.session_state.queue[-1][date_col])
+            st.session_state.queue[-1].pop(date_col)
+            st.session_state.queue_names.append(file_.name)
+        except:
+            st.error("Fichier ne contient pas de colonne date (temps).")
 
 elif choix == retrieval_methods[3]:
     # Text input for searching BCE data
@@ -68,6 +76,7 @@ elif choix == retrieval_methods[3]:
             if title + '.pd' in st.session_state.queue_names:
                 st.write('Fichier déjà importé')
             else:
+                print(data)
                 st.session_state.queue.append(data)
                 st.session_state.queue_names.append(title + '.pd')
     except:
@@ -89,34 +98,28 @@ elif choix == retrieval_methods[1]:
             print('nan')
     start_date = st.text_input('Entrer date de début sous la forme suivante 16-09-2019:').strip()
     end_date = st.text_input('Entrer date de fin sous la forme suivante 16-09-2019:').strip()
-    if start_date == '' or end_date == '':
+    while start_date == '' or end_date == '':
         time.sleep(1)
     st.session_state.visualization_toggle.append(False)
-    interval = st.selectbox('Choisir intervalle: ', utils_import_ui.intervals)
-    if interval == '':
-        time.sleep(1)
     #try:
-    try:
-        if title + " - " + start_date +  " - " +   end_date+ " - "+ interval +  '.pd' in st.session_state.queue_names:
-            st.write('Fichier déjà importé')
+    if title + " - " + start_date +  " - " +   end_date+ " - "+ "1d" +  '.pd' in st.session_state.queue_names:
+        st.write('Fichier déjà importé')
+    else:
+        data = utils_yfinance.extract_daily([ticker], start_date, end_date, interval = '1d')
+        print(data)
+        if data.empty:
+            st.error('Données inexsistantes sur yfinance, importez les manuellement ou bien sur BCE/BDF...')
+            time.sleep(1)
         else:
-            data = utils_yfinance.extract_daily([ticker], start_date, end_date, interval)
-            print(data)
-            if data.empty:
-                st.error('Données inexsistantes sur yfinance, importez les manuellement ou bien sur BCE/BDF...')
-                time.sleep(1)
-            else:
-                for col in data.columns:
-                    if 'date' in col.lower() or 'time' in col.lower():
-                        date_col = col
-                        data.index = pd.to_datetime(data[date_col])
-                        break
-                st.session_state.queue.append(data)
-                st.session_state.queue_names.append(title + " - "+ start_date +  " - "+   end_date+" - "+  interval+  '.pd')
-                choix = ""
-                st.rerun()
-    except:
-        st.error('Veuillez entrer toutes les données nécessaires.')
+            for col in data.columns:
+                if 'date' in col.lower() or 'time' in col.lower():
+                    date_col = col
+                    data.index = pd.to_datetime(data[date_col])
+                    break
+            st.session_state.queue.append(data)
+            st.session_state.queue_names.append(title + " - "+ start_date +  " - "+   end_date+" - "+  "1d"+  '.pd')
+            choix = ""
+            st.rerun()
             #except:
              #st.error("Veuillez choisir une période inférieure à 730 jours")
 #except:
@@ -159,9 +162,10 @@ if st.session_state.queue:
                     st.error("Il manque les données temporelles (dates) dans les données fournies.")
 
                 elif isinstance(df.index,pd.DatetimeIndex):
-                    st.line_chart(df[choix_rep])
+                    fig = px.line(df, x=df.index, y=choix_rep, title=f"Time Series of {choix_rep}")
+                    st.plotly_chart(fig)
                 else:
                     df = df.set_index(date_col)
-                    st.line_chart(df[choix_rep])
-                    st.session_state.to_graph.append(pd.DataFrame(df[choix_rep],index = df.index))
-
+                    fig = px.line(df, x=df.index, y=choix_rep, title=f"Time Series of {choix_rep}")
+                    st.plotly_chart(fig)
+                    st.session_state.to_graph.append(pd.DataFrame(df[choix_rep], index=df.index))

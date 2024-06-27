@@ -44,6 +44,3 @@ def extract_intraday(Tickers: list[str], date_debut: str, date_fin: str, interva
         else:
             data = yf.download(Tickers, start=date_debut_obj, end=date_fin_obj, interval=interval)
             return data
-
-Tickers=['TSLA']
-print(extract_intraday(Tickers , "02-01-2023" , "31-03-2023", "1d"))
