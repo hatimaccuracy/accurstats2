@@ -163,10 +163,20 @@ try:
             st.write("### Interpretation")
 
             st.write("##### Interpretation selon ChatGPT")
-            st.info('En cours de chargement...')
-            st.session_state.chat_gpt_response= gpt.interpret_model(a_expliquer, ["1", beta, pred_1, coeff_1, pred_2 ,coeff_2])
-            st.write(st.session_state.chat_gpt_response)
+            with st.spinner('En cours de chargement...'):
+                st.session_state.chat_gpt_response = gpt.interpret_model(
+                    f"{a_expliquer} (fichier nommé {st.session_state.queue_names[int(st.session_state.var_expliquer_name.split(' - ')[0])]})",
+                    [
+                        "1",
+                        beta,
+                        f"{pred_1} (fichier nommé {st.session_state.queue_names[int(model['Predictor 1'].split(' - ')[0])]})",
+                        coeff_1,
+                        f"{pred_2} (fichier nommé {st.session_state.queue_names[int(model['Predictor 2'].split(' - ')[0])]})",
+                        coeff_2
+                    ]
+                )
 
+            st.markdown(st.session_state.chat_gpt_response)
 except Exception as e:
     print(e)
     st.error('Pas de fichier importé ou pas de screening fait.')

@@ -9,6 +9,7 @@ import sys
 import numpy as np
 from core import utils_analyse
 import time
+from core import Test_stats
 from core import utils_extraction_TS
 sys.path.append('../')
 sys.path.append('../../')
@@ -51,26 +52,47 @@ if st.session_state.queue_names:
         st.write(f"### Fichier {i+1}: {st.session_state.queue_names[i]}")
 
         #### ONGLET - CHANGEMENT DE FREQUENCE
-        with st.expander('Changement de fréquence'):
-            choix_res = st.selectbox('Choisir nouvelle fréquence:', ['D - Jour', 'W - Semaine', 'M - Mois', 'Q - Trimestre', 'Y - Année' , 'H - Heure', 'T - Minute', 'S - Second'], key=f"freq_change{i}")
-            agg = st.selectbox("Choisir fonction d'aggregation:", ['mean - Moyenne', 'max - Valeur maximale', 'sum - Somme'], key=f"freq_agg{i}")
-            st.info('Après changement de fréquence vers une fréquence plus petite, vous pouvez utiliser les interpolations (onglet transformations) pour de meilleurs résultats.')
-            if st.button('Appliquer', key=f"changement_freq{i}"):
-                if "mean" in agg:
-                    agg_ = 'mean'
-                else:
-                    agg_ = agg[:3]
-                st.session_state.queue.insert(i+1,st.session_state.queue[i].asfreq(choix_res[0].lower()))
-                st.session_state.queue[i+1].index.freq = choix_res[0].lower()
-                for col in st.session_state.queue[i+1].columns:
-                    if 'int' in col or 'float' in col:
-                        st.session_state.queue[i+1][col] = st.session_state.queue[i+1][col].aggregate(agg_)
+        with st.expander('Changement de fréquence et période'):
+                st.write("##### Changement de fréquence")
+                choix_res = st.selectbox('Choisir nouvelle fréquence:', ['D - Jour', 'W - Semaine', 'M - Mois', 'Q - Trimestre', 'Y - Année' , 'H - Heure', 'T - Minute', 'S - Second'], key=f"freq_change{i}")
+                agg = st.selectbox("Choisir fonction d'aggregation:", ['mean - Moyenne', 'max - Valeur maximale', 'sum - Somme'], key=f"freq_agg{i}")
+                st.info('Après changement de fréquence vers une fréquence plus petite, vous pouvez utiliser les interpolations (onglet transformations) pour de meilleurs résultats.')
+                if st.button('Appliquer', key=f"changement_freq{i}"):
+                    if "mean" in agg:
+                        agg_ = 'mean'
                     else:
-                        continue
+                        agg_ = agg[:3]
+                    st.session_state.queue.insert(i+1,st.session_state.queue[i].asfreq(choix_res[0].lower()))
+                    st.session_state.queue[i+1].index.freq = choix_res[0].lower()
+                    for col in st.session_state.queue[i+1].columns:
+                        if 'int' in col or 'float' in col:
+                            st.session_state.queue[i+1][col] = st.session_state.queue[i+1][col].aggregate(agg_)
+                        else:
+                            continue
 
-                st.session_state.queue_names.insert(i+1,st.session_state.queue_names[i]+ f" (T)/ {choix_res} / {agg}")
-                st.success(f'Changement de fréquence en {choix_res}/{agg_} fait avec succes')
-                st.rerun()
+                    st.session_state.queue_names.insert(i+1,st.session_state.queue_names[i]+ f" (T)/ {choix_res} / {agg}")
+                    st.session_state.visualization_toggle.append(False)
+                    st.success(f'Changement de fréquence en {choix_res}/{agg_} fait avec succes')
+                    st.rerun()
+
+                st.write("##### Changement de période")
+                period_debut = st.text_input('Saisir date de début (format JJ-MM-AAAA): ', key=f"debut_{i}")
+                period_fin = st.text_input('Saisir date de fin (format JJ-MM-AAAA):', key=f"fin_{i}")
+                inplace = st.checkbox('Remplacer fichier par transformé', key=f'check_rempl_{i}')
+                if st.button('Appliquer', key = f'reduction_date{i}'):
+                    start_date = pd.to_datetime(period_debut.strip())
+                    end_date = pd.to_datetime(period_fin.strip())
+                    output = st.session_state.queue[i].loc[(st.session_state.queue[i].index >= start_date) & (st.session_state.queue[i].index <= end_date)]
+                    if inplace:
+                        st.session_state.queue[i]= output
+                    else:
+                        st.session_state.queue.insert(i + 1, output)
+                        st.session_state.queue_names.insert(i + 1, st.session_state.queue_names[i] + f" (T)/ {period_debut} / {period_fin}")
+                        st.session_state.visualization_toggle.append(False)
+                    st.success(f'Changement de période fait avec succes')
+
+
+
 
 
         #### ONGLET - TRANSFORMATIONS
@@ -232,6 +254,7 @@ if st.session_state.queue_names:
                 time.sleep(1)
 
         ####### ONGLET - TSA
+
         with st.expander('Analyse de séries temporelles'):
             st.write("##### Approximation polynômiale de tendance")
             columns = st.session_state.queue[i].columns[1:]

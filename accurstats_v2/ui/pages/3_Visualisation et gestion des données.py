@@ -15,7 +15,8 @@ sys.path.append('../')
 sys.path.append('../../')
 sys.path.append('../../../')
 
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 # Set page configuration
 st.set_page_config(
     page_title="AccurStats - Visualisation",
@@ -50,6 +51,7 @@ else:
 if st.session_state.queue_names:
     for i in range(len(st.session_state.queue_names)):
         with st.expander(f"Fichier {i + 1}: {st.session_state.queue_names[i]}"):
+            st.write('#### Visualisations', key =f"vis_{i}")
             # Multiselect for choosing features to visualize
             to_gr = st.multiselect('Choisir features à visualiser (vous pouvez choisir plusieurs):',
                                    st.session_state.queue[i].columns[1:], key=f'to_graph{i}')
@@ -81,12 +83,43 @@ if st.session_state.queue_names:
                 st.plotly_chart(fig)
 
             st.write('---')
+            to_corr = st.multiselect(
+                'Choisir features pour lesquels on étudie la correlation (vous pouvez choisir plusieurs):',
+                st.session_state.queue[i].columns, key=f'to_corr{i}'
+            )
+            check_normal = st.checkbox(
+                r'Normaliser les variables suivant $$ N(X) = \dfrac{X- \textbf{E}(X)}{\sigma(X)}$$',
+                key=f"nor_corr_{i}"
+            )
+            if st.button("Calculer Corrélation", key=f'corr_{i}'):
+                if len(to_corr) < 2:
+                    st.error("Veuillez sélectionner au moins deux features.")
+                else:
+                    try:
+                        data_to_corr = st.session_state.queue[i][to_corr]
 
+                        if check_normal:
+                            data_to_corr = (data_to_corr - data_to_corr.mean()) / data_to_corr.std()
+
+                        correlation_matrix = data_to_corr.corr()
+
+                        st.write(f'Corrélation des données du fichier {i + 1}: {st.session_state.queue_names[i]}')
+
+                        # Plotting the heatmap
+                        fig, ax = plt.subplots()
+                        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', ax=ax)
+                        st.pyplot(fig)
+                    except Exception as e:
+                        st.error(f'Erreur: {str(e)}')
+            st.write('---')
+            st.write('#### Suppressions', key=f"vis_{i}")
             # Multiselect for choosing columns to delete
             cols_to_del = st.multiselect('Choisir colonnes à supprimer:', st.session_state.queue[i].columns,
                                          key=f'del{i}')
             if st.button('Supprimer', key=f"key_del_col{i}"):
                 st.session_state.queue[i] = st.session_state.queue[i].drop(columns=cols_to_del)
+                st.success('Transformation bien fait')
+                time.sleep(2)
                 st.rerun()
 
             st.write('---')
@@ -94,6 +127,7 @@ if st.session_state.queue_names:
             if st.button('Supprimer', key=f"key_del{i}"):
                 del st.session_state.queue_names[i]
                 del st.session_state.queue[i]
+                st.session_state.visualization_toggle.pop()
                 st.rerun()
 
     # Expander for collective visualization

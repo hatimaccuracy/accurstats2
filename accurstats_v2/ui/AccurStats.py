@@ -14,13 +14,16 @@ st.set_page_config(
     page_icon = 'A'
 )
 st.title('Bienvenue à AccurStats')
-st.write("Guide de navigation:")
+st.write("#### Guide de navigation:")
 st.markdown(r"$$\blacktriangleright \textbf{Importation}:$$ Pour commencer, on peut importer des fichiers localement ou bien directement de la BCE/BDF ou Yahoo Finance.")
 st.markdown(r"$$\blacktriangleright \textbf{Analyse et transformations}:$$ Cette partie vous permet de faire les différents analyse sur les series temporelles possibles ainsi que faire des transformations sur vos données (normalisation, interpolation, ...).")
 st.markdown(r"$$\blacktriangleright \textbf{Visualisation et gestion des données}:$$ Cette partie vous permet de visualiser des parties de vos données ainsi que de les gérer (supprimer colonne, supprimer fichier).")
 st.markdown(r"$$\blacktriangleright \textbf{Screening}:$$ Cette partie vous fournit une multitude de variables expliquatives avec des métriques différentes.")
 st.markdown(r"$$\blacktriangleright \textbf{Examination modèles}:$$ Cette partie vous permet d'examiner un modèle fournit par le screening de près (interpretation, fit i.e graphiques...).")
-
+st.write("#### Astuces pour workflow:")
+st.write(r'$$\to$$ Tous les graphs sont interactifs, vous pouvez zoomer, mettre en échelle... Vous pouvez aussi les télercharger sous format .png')
+st.write(r"$$\to$$ Tous les tableaux sont interactifs, vous pouvez trier par rapport à n'importe quelle colonne... Vous pouvez aussi les télercharger sous format .csv")
+st.write(r"$$\to$$ Tous les tableaux sont interactifs, vous pouvez trier par rapport à n'importe quelle colonne... Vous pouvez aussi les télercharger sous format .csv")
 if 'queue' not in st.session_state:
     st.session_state.queue = []
 if 'queue_names' not in st.session_state:

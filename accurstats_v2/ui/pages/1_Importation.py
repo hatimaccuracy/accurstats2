@@ -6,6 +6,7 @@
 
 import streamlit as st
 import sys
+from retrieval import utils_bdf
 import time
 import plotly.express as px
 st.set_page_config(
@@ -18,7 +19,7 @@ sys.path.append('../../../')
 from ui import utils_import_ui
 from retrieval import utils_bce
 import pandas as pd
-from config import retrieval_methods
+retrieval_methods = ['', 'Yahoo Finance', 'Banque de France', 'Banque Européenne Centrale', 'Importer un fichier tabulaire localement']
 from retrieval import  utils_yfinance
 pd.set_option('display.max_columns',None)
 ### CACHE
@@ -55,14 +56,37 @@ if choix == retrieval_methods[-1]:
             st.session_state.queue_names.append(file_.name)
         except:
             st.error("Fichier ne contient pas de colonne date (temps).")
+elif choix == retrieval_methods[2]:
+    types = utils_bdf.return_types()
+    choice_1 = st.selectbox('Choisir type de données:', types)
+    while choice_1 == '':
+        time.sleep(1)
+    type_ = choice_1.split(" @ ")[0].strip()
+    series = utils_bdf.return_series(type_)
+    choice_2 = st.selectbox('Choisir donnée à récuperer', series)
+    while choice_2 == '':
+        time.sleep(1)
+    start_date = st.text_input('Entrer date début (format: JJ-MM-AAAA)')
+    end_date = st.text_input('Entrer date fin (format: JJ-MM-AAAA)')
+    while start_date == '' or end_date=='':
+        time.sleep(1)
+    if st.button('Chercher données'):
 
+        data = utils_bdf.return_serie(choice_2, start_date,end_date)
+        title = choice_2.split(' @ ')[1] + ' / ' + start_date + '/' + end_date
+        if title + '.pd' in st.session_state.queue_names:
+            st.error('Fichier déja importé')
+        else:
+            st.session_state.visualization_toggle.append(False)
+            st.session_state.queue.append(data)
+            st.session_state.queue_names.append(title + '.pd')
+            st.success(title + ' bien sauvegardé.')
 elif choix == retrieval_methods[3]:
     # Text input for searching BCE data
     input = st.text_input('Entrez Ticker à chercher dans BCE.')
     input = str(input)
     try:
         if input:
-            st.session_state.visualization_toggle.append(False)
             flow_ref = input.split('.')[0]
             series_key = input[len(flow_ref) + 1:]
             url_ = utils_bce.construct_fetch_url(flow_ref, series_key)
@@ -76,6 +100,7 @@ elif choix == retrieval_methods[3]:
             if title + '.pd' in st.session_state.queue_names:
                 st.write('Fichier déjà importé')
             else:
+                st.session_state.visualization_toggle.append(False)
                 print(data)
                 st.session_state.queue.append(data)
                 st.session_state.queue_names.append(title + '.pd')
@@ -100,26 +125,26 @@ elif choix == retrieval_methods[1]:
     end_date = st.text_input('Entrer date de fin sous la forme suivante 16-09-2019:').strip()
     while start_date == '' or end_date == '':
         time.sleep(1)
-    st.session_state.visualization_toggle.append(False)
-    #try:
-    if title + " - " + start_date +  " - " +   end_date+ " - "+ "1d" +  '.pd' in st.session_state.queue_names:
-        st.write('Fichier déjà importé')
-    else:
-        data = utils_yfinance.extract_daily([ticker], start_date, end_date, interval = '1d')
-        print(data)
-        if data.empty:
-            st.error('Données inexsistantes sur yfinance, importez les manuellement ou bien sur BCE/BDF...')
-            time.sleep(1)
+    if st.button('Chercher données', key='yahoo'):
+        if title + " - " + start_date +  " - " +   end_date+ " - "+ "1d" +  '.pd' in st.session_state.queue_names:
+            st.error('Fichier déjà importé')
         else:
-            for col in data.columns:
-                if 'date' in col.lower() or 'time' in col.lower():
-                    date_col = col
-                    data.index = pd.to_datetime(data[date_col])
-                    break
-            st.session_state.queue.append(data)
-            st.session_state.queue_names.append(title + " - "+ start_date +  " - "+   end_date+" - "+  "1d"+  '.pd')
-            choix = ""
-            st.rerun()
+            st.session_state.visualization_toggle.append(False)
+            data = utils_yfinance.extract_daily([ticker], start_date, end_date, interval = '1d')
+            print(data)
+            if data.empty:
+                st.error('Données inexsistantes sur yfinance, importez les manuellement ou bien sur BCE/BDF...')
+                time.sleep(1)
+            else:
+                for col in data.columns:
+                    if 'date' in col.lower() or 'time' in col.lower():
+                        date_col = col
+                        data.index = pd.to_datetime(data[date_col])
+                        break
+                st.session_state.queue.append(data)
+                st.session_state.queue_names.append(title + " - "+ start_date +  " - "+   end_date+" - "+  "1d"+  '.pd')
+                choix = ""
+                st.rerun()
             #except:
              #st.error("Veuillez choisir une période inférieure à 730 jours")
 #except:

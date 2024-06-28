@@ -41,6 +41,7 @@
     "Python.ui_main.executor": "Run",
     "Python.utils_analyse.executor": "Run",
     "Python.utils_bce.executor": "Run",
+    "Python.utils_bdf.executor": "Run",
     "Python.utils_import_ui.executor": "Run",
     "Python.utils_yfinance.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",

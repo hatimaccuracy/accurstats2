@@ -113,9 +113,11 @@ try:
     st.session_state.para_index_d = st.session_state.drivers.copy()
     st.session_state.para_index_e = st.session_state.var_expliquer.copy()
     if isinstance(st.session_state.var_expliquer.index, pd.DatetimeIndex):
+        st.session_state.to_explique.index.name = 'Date'
         st.session_state.to_explique = st.session_state.to_explique.reset_index()
 
     if isinstance(st.session_state.drivers.index, pd.DatetimeIndex):
+        st.session_state.to_drivers.index.name = 'Date'
         st.session_state.to_drivers = st.session_state.to_drivers.reset_index()
 
     st.session_state.to_explique = st.session_state.to_explique.sort_index()
@@ -133,6 +135,8 @@ try:
 
 
     nbr_points= len(st.session_state.to_drivers)
+    if nbr_points<=2:
+        st.warning('Attention, données contient au plus 2 points.')
     st.session_state.rho = float( st.slider(r'Choisir nombre de points pour backtesting:', 1, nbr_points))/nbr_points
     if st.button('Commencer screening', key=f"begin_screen"):
         st.sidebar.write("Pourentage screening:")
@@ -150,5 +154,4 @@ try:
             st.error("Ressayer.")
             time.sleep(2)
 except Exception as e:
-    print(e)
-    st.error('Pas de fichier importé.')
+    st.write(e)
